@@ -82,6 +82,7 @@ def register_lead(lead: UserBase, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error registering lead: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+        
 @app.post("/webhook")
 async def webhook(request: Request, db: Session = Depends(get_db)):
     """Handles incoming JSON data from Telegram."""
@@ -111,7 +112,8 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
             user.current_step = "AWAITING_CITY"
             db.commit()
             STATE_CACHE[chat_id] = "AWAITING_CITY"
-        return {"status": "ok"}
+            return {"status": "ok"}
+        return {"status": "failed_to_send"}
 
     # 2. AWAITING CITY STATE
     if state == "AWAITING_CITY":
@@ -121,13 +123,14 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
         # Save city and immediately prompt for State
         user.city = incoming
-        msg = "📍 Great! What **state/region** do you reside in?"
+        msg = "📍 Great! What <b>state/region</b> do you reside in?"
         
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_STATE"
             db.commit()
             STATE_CACHE[chat_id] = "AWAITING_STATE"
-        return {"status": "ok"}
+            return {"status": "ok"}
+        return {"status": "failed_to_send"}
 
     # 3. AWAITING STATE/REGION STATE
     if state == "AWAITING_STATE":
@@ -137,13 +140,14 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
         # Save state and immediately prompt for Country
         user.state = incoming
-        msg = "🌍 Excellent. What **country** do you reside in?"
+        msg = "🌍 Excellent. What <b>country</b> do you reside in?"
         
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_COUNTRY"
             db.commit()
             STATE_CACHE[chat_id] = "AWAITING_COUNTRY"
-        return {"status": "ok"}
+            return {"status": "ok"}
+        return {"status": "failed_to_send"}
 
     # 4. AWAITING COUNTRY STATE
     if state == "AWAITING_COUNTRY":
@@ -158,21 +162,25 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         STATE_CACHE[chat_id] = "CONFIRMED"
 
         confirm_msg = f"✅ Onboarding Complete! You'll receive weather updates for <b>{user.city}, {user.state}, {incoming}</b>.\n\nReply 'change' anytime to update your location."
-        send_telegram_message(chat_id, confirm_msg)
-        return {"status": "ok"}
+        
+        if send_telegram_message(chat_id, confirm_msg):
+            return {"status": "ok"}
+        return {"status": "failed_to_send"}
 
     # 5. COMPLETED / CONFIRMED STATE
     if state == "CONFIRMED":
         if incoming.lower() == "change":
-            user.current_step = "AWAITING_CITY"
-            db.commit()
-            STATE_CACHE[chat_id] = "AWAITING_CITY"
-            send_telegram_message(chat_id, "🔄 Let's update it. What **city** do you want to track?")
+            msg = "🔄 Let's update it. What <b>city</b> do you want to track?"
+            if send_telegram_message(chat_id, msg):
+                user.current_step = "AWAITING_CITY"
+                db.commit()
+                STATE_CACHE[chat_id] = "AWAITING_CITY"
+                return {"status": "ok"}
+            return {"status": "failed_to_send"}
         else:
             status_msg = f"You are currently tracking weather for: <b>{user.city}, {user.state}, {user.country}</b>.\n\nReply 'change' to update it."
-            send_telegram_message(chat_id, status_msg)
-        return {"status": "ok"}
+            if send_telegram_message(chat_id, status_msg):
+                return {"status": "ok"}
+            return {"status": "failed_to_send"}
 
     return {"status": "error"}
-
-   
