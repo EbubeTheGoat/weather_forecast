@@ -14,13 +14,15 @@ import api.model
 from api.schemas import UserBase
 from api.logger_config import get_logger
 from api.worker import job_fetch_and_send_forecast, send_telegram_message
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 # Initialize DB Models
 Base.metadata.create_all(bind=engine)
 logger = get_logger("main")
 
 LIMITER = Limiter(key_func=get_remote_address, default_limits=["1000/hour"])
-
+STATIC_DIR = Path(__file__).parent / "static"
 # Simple in-memory cache for state management
 STATE_CACHE = {}
 
@@ -39,9 +41,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-@app.get("/")
-async def root():
-    return {"message": "Weather Forecast API is running!"}
+
+@app.get("/", include_in_schema=False)
+def serve_landing_page():
+    index_file = STATIC_DIR / "index.html"
+    if not index_file.exists():
+        return Response(content="Error: index.html not found", status_code=404)
+    return FileResponse(index_file)
  
 def normalize_name(name: str) -> str:
     cleaned = (name or "").strip()
