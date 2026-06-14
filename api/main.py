@@ -39,7 +39,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+@app.get("/")
+async def root():
+    return {"message": "Weather Forecast API is running!"}
+ 
 def normalize_name(name: str) -> str:
     cleaned = (name or "").strip()
     if len(cleaned) < 2:
