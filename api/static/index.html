@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkyPulse — Daily Weather on Telegram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --night: #0A0A24;
+      --deep: #0F0F2D;
+      --indigo: #1A1A4E;
+      --sky: #4FC3F7;
+      --glow: #38BDF8;
+      --amber: #F59E0B;
+      --white: #F0F4FF;
+      --muted: #94A3B8;
+      --card: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --radius: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--night);
+      color: var(--white);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(10,10,36,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 1.2rem;
+      color: var(--white); letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo span { color: var(--sky); }
+    .nav-cta {
+      background: var(--sky); color: var(--night);
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 0.85rem; letter-spacing: 0.03em;
+      padding: 10px 22px; border-radius: 100px;
+      text-decoration: none; transition: opacity 0.2s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative; overflow: hidden;
+    }
+
+    /* Animated sky gradient */
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(79,195,247,0.18) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 40% at 80% 80%, rgba(245,158,11,0.08) 0%, transparent 60%),
+                  var(--night);
+      animation: skyPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes skyPulse {
+      from { opacity: 1; }
+      to { opacity: 0.7; }
+    }
+
+    /* Floating orbs */
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(60px); pointer-events: none; opacity: 0.25;
+    }
+    .orb-1 { width: 400px; height: 400px; background: var(--sky); top: -100px; left: -100px; animation: drift1 12s ease-in-out infinite alternate; }
+    .orb-2 { width: 300px; height: 300px; background: var(--amber); bottom: 0; right: -80px; animation: drift2 10s ease-in-out infinite alternate; }
+    @keyframes drift1 { to { transform: translate(40px, 60px); } }
+    @keyframes drift2 { to { transform: translate(-40px, -40px); } }
+
+    .hero-content { position: relative; z-index: 1; max-width: 780px; }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--sky);
+      background: rgba(79,195,247,0.1);
+      border: 1px solid rgba(79,195,247,0.2);
+      padding: 6px 16px; border-radius: 100px;
+      margin-bottom: 28px;
+    }
+    .eyebrow-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--sky);
+      animation: blink 1.8s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: clamp(2.6rem, 6vw, 5rem);
+      line-height: 1.05; letter-spacing: -0.03em;
+      margin-bottom: 24px;
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--sky) 0%,#A78BFA 100%);
+      -webkit-background-clip: text; background-clip: border-box; -webkit-text-fill-color: transparent; 
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted); line-height: 1.7;
+      max-width: 520px; margin: 0 auto 40px;
+    }
+
+    .hero-actions {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--sky), #38BDF8);
+      color: var(--night); font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      padding: 14px 32px; border-radius: 100px;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 32px rgba(79,195,247,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(79,195,247,0.5); }
+    .btn-secondary {
+      background: transparent; color: var(--white);
+      font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem;
+      padding: 14px 32px; border-radius: 100px;
+      border: 1px solid var(--border); text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--sky); background: rgba(79,195,247,0.06); }
+
+    /* Telegram mock */
+    .tg-preview {
+      margin: 60px auto 0;
+      max-width: 360px;
+      background: #17212B;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+      text-align: left;
+      position: relative; z-index: 1;
+    }
+    .tg-bar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .tg-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--sky), #6366F1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .tg-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--white); }
+    .tg-status { font-size: 0.72rem; color: #4FC3F7; }
+
+    .tg-bubble {
+      background: #2B5278;
+      border-radius: 14px 14px 14px 2px;
+      padding: 12px 14px;
+      font-size: 0.88rem; line-height: 1.6;
+      color: #E8EDF2;
+      margin-bottom: 8px;
+      animation: bubbleIn 0.4s ease;
+    }
+    .tg-bubble b { color: var(--sky); }
+    .tg-meta { font-size: 0.68rem; color: var(--muted); text-align: right; margin-top: 2px; }
+
+    @keyframes bubbleIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── STATS STRIP ── */
+    .stats-strip {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .stat-item {
+      flex: 1; min-width: 160px;
+      padding: 28px 32px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-number {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 2rem;
+      color: var(--sky); letter-spacing: -0.03em;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 24px; }
+
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--sky);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: -0.03em; line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-body {
+      color: var(--muted); font-size: 1.05rem;
+      line-height: 1.7; max-width: 480px;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex; gap: 20px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: default;
+      transition: background 0.2s;
+    }
+    .step:first-child { padding-top: 0; }
+    .step:last-child { border-bottom: none; }
+    .step-icon {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: rgba(79,195,247,0.1);
+      border: 1px solid rgba(79,195,247,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .step h3 {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 1rem; margin-bottom: 6px;
+    }
+    .step p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
+
+    .how-visual {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .weather-card {
+      background: rgba(79,195,247,0.06);
+      border: 1px solid rgba(79,195,247,0.1);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .weather-card-left { display: flex; align-items: center; gap: 12px; }
+    .weather-icon { font-size: 1.8rem; }
+    .weather-city { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+    .weather-desc { font-size: 0.78rem; color: var(--muted); }
+    .weather-temp {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 1.6rem; color: var(--amber);
+    }
+    .forecast-row {
+      display: flex; gap: 8px;
+    }
+    .forecast-hour {
+      flex: 1; background: rgba(255,255,255,0.03); border-radius: 10px;
+      padding: 10px 6px; text-align: center;
+    }
+    .forecast-hour .fh-time { font-size: 0.65rem; color: var(--muted); }
+    .forecast-hour .fh-icon { font-size: 1.1rem; margin: 4px 0; }
+    .forecast-hour .fh-temp { font-size: 0.78rem; font-weight: 600; color: var(--white); }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 48px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: rgba(79,195,247,0.3); transform: translateY(-3px); }
+    .feature-emoji { font-size: 1.8rem; margin-bottom: 14px; }
+    .feature-title { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 8px; }
+    .feature-text { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── REGISTER ── */
+    #register {
+      background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(79,195,247,0.1) 0%, transparent 70%);
+    }
+    .register-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .register-form-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+    }
+    .form-title {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 1.4rem; margin-bottom: 6px;
+    }
+    .form-sub { font-size: 0.88rem; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 0.8rem; font-weight: 600;
+      color: var(--muted); margin-bottom: 8px; letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .form-group input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input::placeholder { color: var(--muted); }
+    .form-group input:focus {
+      border-color: var(--sky);
+      box-shadow: 0 0 0 3px rgba(79,195,247,0.12);
+    }
+
+    .form-submit {
+      width: 100%;
+      background: linear-gradient(135deg, var(--sky), #38BDF8);
+      color: var(--night);
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+      border: none; border-radius: 100px;
+      padding: 14px; margin-top: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 0 24px rgba(79,195,247,0.3);
+    }
+    .form-submit:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(79,195,247,0.5); }
+    .form-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .form-note { font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 14px; }
+
+    /* Success state */
+    .success-msg {
+      display: none;
+      text-align: center; padding: 32px 0;
+    }
+    .success-msg .success-icon { font-size: 3rem; margin-bottom: 12px; }
+    .success-msg h3 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; margin-bottom: 8px; }
+    .success-msg p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+    /* Error */
+    .form-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.83rem; color: #FCA5A5;
+      margin-top: 12px; display: none;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 24px;
+      text-align: center;
+    }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 1.1rem; color: var(--white); margin-bottom: 10px;
+    }
+    .footer-logo span { color: var(--sky); }
+    .footer-sub { font-size: 0.82rem; color: var(--muted); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 16px 20px; }
+      .how-layout, .register-layout { grid-template-columns: 1fr; gap: 40px; }
+      .how-visual { display: none; }
+      .stat-item { min-width: 120px; padding: 20px 16px; }
+      section { padding: 64px 20px; }
+      .register-form-box { padding: 28px 20px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .orb, .hero::before { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Sky<span>Pulse</span> ☁</div>
+  <a href="#register" class="nav-cta">Get forecasts free →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-dot"></span>
+      Delivering daily forecasts on Telegram
+    </div>
+    <h1>The weather,<br/><em>before you open your door.</em></h1>
+    <p class="hero-sub">
+      SkyPulse sends you an AI-powered weather forecast every morning — directly to your Telegram. No app to install. Just one message that tells you exactly what to expect.
+    </p>
+    <div class="hero-actions">
+      <a href="#register" class="btn-primary">Start receiving forecasts</a>
+      <a href="#how" class="btn-secondary">How it works</a>
+    </div>
+
+    <!-- Telegram preview -->
+    <div class="tg-preview">
+      <div class="tg-bar">
+        <div class="tg-avatar">🌤</div>
+        <div>
+          <div class="tg-name">SkyPulse Bot</div>
+          <div class="tg-status">● Online</div>
+        </div>
+      </div>
+      <div class="tg-bubble">
+        Weather Forecast for <b>Lagos, Nigeria</b> 🌍<br/><br/>
+        ☀ Sunny morning with some afternoon clouds. High of <b>33°C</b>.<br/>
+        No rain expected before 6 PM — but keep an eye out after. Light showers possible in Ikeja and Surulere from 7–9 PM.
+      </div>
+      <div class="tg-meta">8:00 AM · ✓✓</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-strip">
+  <div class="stat-item">
+    <div class="stat-number">5AM</div>
+    <div class="stat-label">Forecast delivered daily</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">AI</div>
+    <div class="stat-label">Meteorology analysis</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">36+</div>
+    <div class="stat-label">Cities tracked</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">Free</div>
+    <div class="stat-label">No subscription needed</div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-inner">
+    <div class="how-layout">
+      <div>
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Three steps, then never think about it again.</h2>
+        <p class="section-body" style="margin-bottom: 40px;">You tell us your city once. We handle the rest — fetching live weather data and distilling it into a human forecast every single morning.</p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-icon">✍️</div>
+            <div>
+              <h3>Register your name</h3>
+              <p>Drop your name in the form below. That's your spot in the queue.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-icon">📍</div>
+            <div>
+              <h3>Tell the bot your location</h3>
+              <p>Open the Telegram bot and share your city, state, and country. It only asks once.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-icon">☀️</div>
+            <div>
+              <h3>Wake up to your forecast</h3>
+              <p>Every morning at 5 AM, your personalised forecast lands in your Telegram. Check it while your kettle boils.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weather visual -->
+      <div class="how-visual">
+        <div class="weather-card">
+          <div class="weather-card-left">
+            <div class="weather-icon">⛅</div>
+            <div>
+              <div class="weather-city">Abuja, FCT</div>
+              <div class="weather-desc">Partly cloudy · Light breeze</div>
+            </div>
+          </div>
+          <div class="weather-temp">31°</div>
+        </div>
+
+        <div class="forecast-row">
+          <div class="forecast-hour">
+            <div class="fh-time">6 AM</div>
+            <div class="fh-icon">🌅</div>
+            <div class="fh-temp">24°</div>
+          </div>
+          <div class="forecast-hour">
+            <div class="fh-time">9 AM</div>
+            <div class="fh-icon">☀️</div>
+            <div class="fh-temp">28°</div>
+          </div>
+          <div class="forecast-hour">
+            <div class="fh-time">12 PM</div>
+            <div class="fh-icon">🌤</div>
+            <div class="fh-temp">31°</div>
+          </div>
+          <div class="forecast-hour">
+            <div class="fh-time">3 PM</div>
+            <div class="fh-icon">⛅</div>
+            <div class="fh-temp">30°</div>
+          </div>
+          <div class="forecast-hour">
+            <div class="fh-time">6 PM</div>
+            <div class="fh-icon">🌦</div>
+            <div class="fh-temp">27°</div>
+          </div>
+          <div class="forecast-hour">
+            <div class="fh-time">9 PM</div>
+            <div class="fh-icon">🌧</div>
+            <div class="fh-temp">24°</div>
+          </div>
+        </div>
+
+        <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 12px; padding: 14px 18px;">
+          <div style="font-size: 0.72rem; color: var(--amber); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">AI Summary</div>
+          <div style="font-size: 0.85rem; line-height: 1.6; color: #E8EDF2;">A warm and clear morning turning overcast by noon. Rain likely from 6–9 PM — carry an umbrella if heading out late.</div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <div style="flex:1; background: rgba(79,195,247,0.06); border: 1px solid rgba(79,195,247,0.1); border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 0.68rem; color: var(--muted); margin-bottom: 4px;">HUMIDITY</div>
+            <div style="font-family: 'Syne', sans-serif; font-weight: 700; color: var(--sky);">72%</div>
+          </div>
+          <div style="flex:1; background: rgba(79,195,247,0.06); border: 1px solid rgba(79,195,247,0.1); border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 0.68rem; color: var(--muted); margin-bottom: 4px;">WIND</div>
+            <div style="font-family: 'Syne', sans-serif; font-weight: 700; color: var(--sky);">12 km/h</div>
+          </div>
+          <div style="flex:1; background: rgba(79,195,247,0.06); border: 1px solid rgba(79,195,247,0.1); border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 0.68rem; color: var(--muted); margin-bottom: 4px;">UV INDEX</div>
+            <div style="font-family: 'Syne', sans-serif; font-weight: 700; color: var(--amber);">High</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section style="background: rgba(255,255,255,0.01);">
+  <div class="section-inner">
+    <div class="section-label">Why SkyPulse</div>
+    <h2 class="section-title">Weather that actually tells you something.</h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-emoji">🤖</div>
+        <div class="feature-title">AI-written, not data-dumped</div>
+        <p class="feature-text">Raw sensor readings run through an LLM and come out as plain language — the kind a friend who happens to be a meteorologist would send you.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">📍</div>
+        <div class="feature-title">Hyper-local by default</div>
+        <p class="feature-text">Enter your exact city. Coordinates are resolved down to your area, not just a regional capital hundreds of kilometres away.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">🔔</div>
+        <div class="feature-title">Proactive, not reactive</div>
+        <p class="feature-text">You don't ask — it tells you. Every morning before you leave home, it's already in your inbox. No app, no refresh, no effort.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">🔄</div>
+        <div class="feature-title">Change location anytime</div>
+        <p class="feature-text">Travelling to Port Harcourt for the week? Just reply "change" to the bot and update your city on the spot.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">📡</div>
+        <div class="feature-title">Open-source weather data</div>
+        <p class="feature-text">Powered by Open-Meteo — a reliable, high-resolution forecast API with no paywalls or token limits eating into accuracy.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-emoji">⚡</div>
+        <div class="feature-title">Runs on Telegram, always</div>
+        <p class="feature-text">No new app to install. Works on any phone with Telegram. Low data, fast delivery, even on slow network days.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTER -->
+<section id="register">
+  <div class="section-inner">
+    <div class="register-layout">
+      <div>
+        <div class="section-label">Get started</div>
+        <h2 class="section-title">Reserve your spot.<br/>Forecasts start tomorrow.</h2>
+        <p class="section-body" style="margin-bottom: 24px;">
+          Add your name below, then open the Telegram bot to finish setup. The whole process takes under two minutes — and from then on, your forecast runs itself.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--muted);">
+            <span style="color: var(--sky);">✓</span> No credit card. No subscription. Totally free.
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--muted);">
+            <span style="color: var(--sky);">✓</span> Works in Lagos, Abuja, Kano, PH — anywhere.
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--muted);">
+            <span style="color: var(--sky);">✓</span> Update your city anytime from Telegram.
+          </div>
+        </div>
+      </div>
+
+      <div class="register-form-box">
+        <div id="form-container">
+          <div class="form-title">Register for free forecasts</div>
+          <div class="form-sub">Enter your name and we'll set up your daily delivery.</div>
+
+          <div class="form-group">
+            <label for="full-name">Your full name</label>
+            <input type="text" id="full-name" placeholder="e.g. Amara Okonkwo" autocomplete="name"/>
+          </div>
+
+          <div id="form-error" class="form-error"></div>
+
+          <button class="form-submit" id="submit-btn" onclick="handleRegister()">
+            Send me daily forecasts →
+          </button>
+
+          <div class="form-note">
+            By registering, you agree to receive weather messages via our Telegram bot. Unsubscribe anytime.
+          </div>
+        </div>
+
+        <div class="success-msg" id="success-msg">
+          <div class="success-icon">✅</div>
+          <h3>You're on the list!</h3>
+          <p>Now open our Telegram bot to share your city and complete setup. Your first forecast lands tomorrow morning at 5 AM.</p>
+          <div style="margin-top: 20px;">
+            <a href="https://t.me/your_bot_username" class="btn-primary" style="display: inline-block; font-size: 0.9rem; padding: 12px 24px;">
+              Open Telegram bot →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Sky<span>Pulse</span> ☁</div>
+    <div class="footer-sub">A daily weather forecast, delivered to your Telegram every morning. Built with Open-Meteo &amp; Groq AI.</div>
+  </div>
+</footer>
+
+<script>
+  async function handleRegister() {
+    const btn = document.getElementById('submit-btn');
+    const nameInput = document.getElementById('full-name');
+    const errorEl = document.getElementById('form-error');
+    const name = nameInput.value.trim();
+
+    errorEl.style.display = 'none';
+
+    if (!name || name.length < 2) {
+      errorEl.textContent = 'Please enter your full name (at least 2 characters).';
+      errorEl.style.display = 'block';
+      nameInput.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Registering...';
+
+    try {
+      const response = await fetch('/register_lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || 'Something went wrong. Please try again.');
+      }
+
+      // Show success
+      document.getElementById('form-container').style.display = 'none';
+      document.getElementById('success-msg').style.display = 'block';
+
+    } catch (err) {
+      errorEl.textContent = err.message || 'Could not register. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send me daily forecasts →';
+    }
+  }
+
+  // Allow Enter key to submit
+  document.getElementById('full-name').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleRegister();
+  });
+</script>
+</body>
+</html>
