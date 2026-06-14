@@ -21,7 +21,6 @@ def get_coordinates(city, state, country):
         f"{city}, {state}, {country}",
         f"{city}, {country}",
         f"{state}, {country}",
-        
     ]
 
     for query in queries:
@@ -44,7 +43,9 @@ def get_coordinates(city, state, country):
             logger.error(f"Network error for '{query}': {e}")
             continue
 
-    raise ValueError(f"Could not find coordinates for {city} or {state}")
+    # Log exactly what's in the DB so you can see what's failing
+    logger.error(f"Could not resolve coordinates — city='{city}' state='{state}' country='{country}'")
+    raise ValueError(f"Could not find coordinates for {city}, {state}, {country}")
 
 def get_weather_forecast(lat: float, lon: float):
     base_url = "https://api.open-meteo.com/v1/forecast"
@@ -97,25 +98,29 @@ def send_telegram_message(chat_id: str, message: str):
         return False
 
 def job_fetch_and_send_forecast():
-    # Context manager properly closes the session to prevent leaks
     with SessionLocal() as db:
         try:
-            # We must iterate over actual users, not the class blueprint
-            users = db.query(User).filter(User.city != None).all()
+            users = db.query(User).filter(
+                User.city != None,
+                User.current_step == "CONFIRMED"  # ← only fully onboarded users
+            ).all()
+
             for user in users:
                 try:
+                    # Log what's in the DB so you can verify
+                    logger.info(f"Processing user {user.phone_number} — city={user.city}, state={user.state}, country={user.country}")
+                    
                     scraped = get_coordinates(user.city, user.state, user.country)
                     weather_news = get_weather_forecast(scraped["latitude"], scraped["longitude"])
                     prediction = predict_rain(weather_news)
 
                     message = f"Weather Forecast for <b>{scraped['name']}, {scraped['country']}</b>:\n\n{prediction}"
-                    
-                    success = send_telegram_message(user.phone_number, message)
-                    if not success:
-                        send_telegram_message(user.phone_number, "Failed to send complete forecast. Will do better next time!")
-                
+                    send_telegram_message(user.phone_number, message)
+
                 except Exception as e:
-                    logger.error(f"Error processing user {user.phone_number}: {e}")
+                    logger.error(f"Skipping user {user.phone_number}: {e}")
+                    send_telegram_message(user.phone_number, "⚠️ Could not fetch your forecast. Try updating your location by replying 'change'.")
                     continue
+
         except Exception as e:
             logger.error(f"Error in cron job execution: {e}")
