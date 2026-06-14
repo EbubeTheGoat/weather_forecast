@@ -24,11 +24,23 @@ logger = get_logger("main")
 LIMITER = Limiter(key_func=get_remote_address, default_limits=["1000/hour"])
 STATIC_DIR = Path(__file__).parent / "static"
 # Simple in-memory cache for state management
-STATE_CACHE = {}
+VALID_STATES = {"IDLE", "AWAITING_CITY", "AWAITING_STATE", "AWAITING_COUNTRY", "CONFIRMED"}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
+    
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("""
+            UPDATE users 
+            SET current_step = 'IDLE' 
+            WHERE current_step NOT IN ('IDLE', 'AWAITING_CITY', 'AWAITING_STATE', 'AWAITING_COUNTRY', 'CONFIRMED')
+            OR current_step IS NULL
+        """))
+        conn.commit()
+    logger.info("Stale states cleaned up")
+    
     yield
     logger.info("Application shutting down...")
 
@@ -104,7 +116,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     logger.info(f"DEBUG — chat_id={chat_id}, state='{user.current_step}', incoming='{incoming}'")
 
     # Prefer cache, fallback to database state
-    state = STATE_CACHE.get(chat_id, user.current_step)
+    state = user.current_step if user.current_step in VALID_STATES else "IDLE"
 
     # 1. IDLE STATE: User just joined or started
     if state == "IDLE":
@@ -112,7 +124,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_CITY"
             db.commit()
-            STATE_CACHE[chat_id] = "AWAITING_CITY"
             return {"status": "ok"}
         return {"status": "failed_to_send"}
 
@@ -129,7 +140,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_STATE"
             db.commit()
-            STATE_CACHE[chat_id] = "AWAITING_STATE"
             return {"status": "ok"}
         return {"status": "failed_to_send"}
 
@@ -146,7 +156,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_COUNTRY"
             db.commit()
-            STATE_CACHE[chat_id] = "AWAITING_COUNTRY"
             return {"status": "ok"}
         return {"status": "failed_to_send"}
 
@@ -160,7 +169,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         user.country = incoming
         user.current_step = "CONFIRMED"
         db.commit()
-        STATE_CACHE[chat_id] = "CONFIRMED"
 
         confirm_msg = f"✅ Onboarding Complete! You'll receive weather updates for <b>{user.city}, {user.state}, {incoming}</b>.\n\nReply 'change' anytime to update your location."
         
