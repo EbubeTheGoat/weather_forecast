@@ -183,7 +183,6 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
             if send_telegram_message(chat_id, msg):
                 user.current_step = "AWAITING_CITY"
                 db.commit()
-                STATE_CACHE[chat_id] = "AWAITING_CITY"
                 return {"status": "ok"}
             return {"status": "failed_to_send"}
         else:
