@@ -6,7 +6,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=True)
-    phone_number = Column(String, unique=True, nullable=False) # Used for Telegram Chat ID
+    phone_number = Column(String, unique=True, nullable=True) # Used for Telegram Chat ID
     city = Column(String, nullable=True)
     state = Column(String, nullable=True)
     country = Column(String, nullable=True, default="Unknown")
