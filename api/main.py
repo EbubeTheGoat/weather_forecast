@@ -82,7 +82,6 @@ def register_lead(lead: UserBase, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error registering lead: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
 @app.post("/webhook")
 async def webhook(request: Request, db: Session = Depends(get_db)):
     """Handles incoming JSON data from Telegram."""
@@ -94,6 +93,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     chat_id = str(data["message"]["chat"]["id"])
     incoming = data["message"]["text"].strip()
 
+    # Fetch user or create if new
     user = db.query(api.model.User).filter(api.model.User.phone_number == chat_id).first()
 
     if not user:
@@ -104,7 +104,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     # Prefer cache, fallback to database state
     state = STATE_CACHE.get(chat_id, user.current_step)
 
-    # State Machine Logic
+    # 1. IDLE STATE: User just joined or started
     if state == "IDLE":
         msg = "🚀 <b>Welcome to Weather forecast!</b>\n\nWhat city do you want the forecast for?"
         if send_telegram_message(chat_id, msg):
@@ -113,61 +113,66 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
             STATE_CACHE[chat_id] = "AWAITING_CITY"
         return {"status": "ok"}
 
+    # 2. AWAITING CITY STATE
     if state == "AWAITING_CITY":
         if len(incoming) < 2 or incoming.lower() == "/start":
             send_telegram_message(chat_id, "Please enter a valid city name.")
             return {"status": "ok"}
 
-        user.city = incoming # Assuming they input a city for weather tracking
-        user.current_step = "CONFIRMED_CITY"
-        db.commit()
-    if state == "CONFIRMED_CITY":
-        msg = "🚀 <b>Welcome to Weather forecast!</b>\n\nWhat state do you reside in ?"
+        # Save city and immediately prompt for State
+        user.city = incoming
+        msg = "📍 Great! What **state/region** do you reside in?"
+        
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_STATE"
             db.commit()
             STATE_CACHE[chat_id] = "AWAITING_STATE"
         return {"status": "ok"}
 
+    # 3. AWAITING STATE/REGION STATE
     if state == "AWAITING_STATE":
         if len(incoming) < 2 or incoming.lower() == "/start":
             send_telegram_message(chat_id, "Please enter a valid state name.")
             return {"status": "ok"}
 
-        user.state = incoming # Assuming they input a city for weather tracking
-        user.current_step = "CONFIRMED_STATE"
-        db.commit()
-    if state == "CONFIRMED_STATE":
-        msg = "🚀 <b>Welcome to Weather forecast!</b>\n\nWhat country do you reside in ?"
+        # Save state and immediately prompt for Country
+        user.state = incoming
+        msg = "🌍 Excellent. What **country** do you reside in?"
+        
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_COUNTRY"
             db.commit()
             STATE_CACHE[chat_id] = "AWAITING_COUNTRY"
         return {"status": "ok"}
 
+    # 4. AWAITING COUNTRY STATE
     if state == "AWAITING_COUNTRY":
         if len(incoming) < 2 or incoming.lower() == "/start":
             send_telegram_message(chat_id, "Please enter a valid country name.")
             return {"status": "ok"}
 
-        user.country = incoming # Assuming they input a city for weather tracking
-        user.current_step = "CONFIRMED_COUNTRY"
+        # Save country and finish onboarding
+        user.country = incoming
+        user.current_step = "CONFIRMED"
         db.commit()
         STATE_CACHE[chat_id] = "CONFIRMED"
 
-        confirm_msg = f"✅ Got it! You'll receive weather updates for <b>{incoming}</b>.\n\nReply 'change' anytime to update your location."
+        confirm_msg = f"✅ Onboarding Complete! You'll receive weather updates for <b>{user.city}, {user.state}, {incoming}</b>.\n\nReply 'change' anytime to update your location."
         send_telegram_message(chat_id, confirm_msg)
         return {"status": "ok"}
 
+    # 5. COMPLETED / CONFIRMED STATE
     if state == "CONFIRMED":
         if incoming.lower() == "change":
-            user.current_step = "AWAITING_LOCATION"
+            user.current_step = "AWAITING_CITY"
             db.commit()
-            STATE_CACHE[chat_id] = "AWAITING_LOCATION"
-            send_telegram_message(chat_id, "What is the new city you want to track?")
+            STATE_CACHE[chat_id] = "AWAITING_CITY"
+            send_telegram_message(chat_id, "🔄 Let's update it. What **city** do you want to track?")
         else:
-            status_msg = f"You are currently tracking weather for: <b>{user.city}</b>.\n\nReply 'change' to update it."
+            status_msg = f"You are currently tracking weather for: <b>{user.city}, {user.state}, {user.country}</b>.\n\nReply 'change' to update it."
             send_telegram_message(chat_id, status_msg)
         return {"status": "ok"}
+
+    return {"status": "error"}
 
     return {"status": "error"}  
