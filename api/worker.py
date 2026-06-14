@@ -72,7 +72,7 @@ def predict_rain(weather_data: dict):
     """
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192", # Ensure this model ID exists in Groq's current docs
+            model="openai/gpt-oss-20b", # Ensure this model ID exists in Groq's current docs
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
