@@ -101,6 +101,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         user = api.model.User(phone_number=chat_id, current_step="IDLE")
         db.add(user)
         db.commit()
+    logger.info(f"DEBUG — chat_id={chat_id}, state='{user.current_step}', incoming='{incoming}'")
 
     # Prefer cache, fallback to database state
     state = STATE_CACHE.get(chat_id, user.current_step)
