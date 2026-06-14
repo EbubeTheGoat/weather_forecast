@@ -21,7 +21,7 @@ def get_coordinates(city, state, country):
         f"{city}, {state}, {country}",
         f"{city}, {country}",
         f"{state}, {country}",
-        "Lagos, Nigeria"
+        
     ]
 
     for query in queries:
@@ -67,6 +67,7 @@ def predict_rain(weather_data: dict):
     2. If it's going to rain, when will it start and end?
     3. How heavy will it be if it rains?
     4. Provide a brief summary of the weather conditions for the day.
+    5. Give the information using west african time
     Keep it concise.
     Data: {weather_data}
     """
