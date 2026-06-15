@@ -120,7 +120,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
     # 1. IDLE STATE: User just joined or started
     if state == "IDLE":
-        msg = "🚀 <b>Welcome to Weather forecast!</b>\n\nWhat city do you want the forecast for?"
+        msg = "🚀 Welcome to Weather forecast!\n\nWhat city do you want the forecast for?"
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_CITY"
             db.commit()
@@ -135,7 +135,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
         # Save city and immediately prompt for State
         user.city = incoming
-        msg = "📍 Great! What <b>state/region</b> do you reside in?"
+        msg = "📍 Great! What state/region do you reside in?"
         
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_STATE"
@@ -151,7 +151,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
         # Save state and immediately prompt for Country
         user.state = incoming
-        msg = "🌍 Excellent. What <b>country</b> do you reside in?"
+        msg = "🌍 Excellent. What country do you reside in?"
         
         if send_telegram_message(chat_id, msg):
             user.current_step = "AWAITING_COUNTRY"
@@ -170,7 +170,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         user.current_step = "CONFIRMED"
         db.commit()
 
-        confirm_msg = f"✅ Onboarding Complete! You'll receive weather updates for <b>{user.city}, {user.state}, {incoming}</b>.\n\nReply 'change' anytime to update your location."
+        confirm_msg = f"✅ Onboarding Complete! You'll receive weather updates for {user.city}, {user.state}, {incoming}.\n\nReply 'change' anytime to update your location."
         
         if send_telegram_message(chat_id, confirm_msg):
             return {"status": "ok"}
