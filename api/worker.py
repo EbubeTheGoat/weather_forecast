@@ -116,7 +116,7 @@ def job_fetch_and_send_forecast():
                     weather_news = get_weather_forecast(scraped["latitude"], scraped["longitude"])
                     prediction = predict_rain(weather_news)
 
-                    message = f"Weather Forecast for <b>{scraped['name']}, {scraped['country']}</b>:\n\n{prediction}"
+                    message = f"Weather Forecast for {scraped['name']}, {scraped['country']}:\n\n{prediction}"
                     send_telegram_message(user.phone_number, message)
 
                 except Exception as e:
