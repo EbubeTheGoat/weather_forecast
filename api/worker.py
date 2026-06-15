@@ -69,6 +69,8 @@ def predict_rain(weather_data: dict):
     3. How heavy will it be if it rains?
     4. Provide a brief summary of the weather conditions for the day.
     5. Give the information using west african time
+    CRITICAL INSTRUCTION: Format your entire response strictly in Markdown. 
+    Use **bold** for emphasis, bullet points for lists, and keep it concise.
     Keep it concise.
     Data: {weather_data}
     """
@@ -88,7 +90,7 @@ def send_telegram_message(chat_id: str, message: str):
         return False
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
+    payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
     try:
         response = requests.post(url, json=payload, timeout=5)
         response.raise_for_status()
