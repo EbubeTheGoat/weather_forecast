@@ -179,14 +179,14 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     # 5. COMPLETED / CONFIRMED STATE
     if state == "CONFIRMED":
         if incoming.lower() == "change":
-            msg = "🔄 Let's update it. What <b>city</b> do you want to track?"
+            msg = "🔄 Let's update it. What city do you want to track?"
             if send_telegram_message(chat_id, msg):
                 user.current_step = "AWAITING_CITY"
                 db.commit()
                 return {"status": "ok"}
             return {"status": "failed_to_send"}
         else:
-            status_msg = f"You are currently tracking weather for: <b>{user.city}, {user.state}, {user.country}</b>.\n\nReply 'change' to update it."
+            status_msg = f"You are currently tracking weather for: {user.city}, {user.state}, {user.country}.\n\nReply 'change' to update it."
             if send_telegram_message(chat_id, status_msg):
                 return {"status": "ok"}
             return {"status": "failed_to_send"}
