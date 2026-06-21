@@ -10,8 +10,7 @@ load_dotenv()
 logger = get_logger("worker")
 
 client = OpenAI(
-    api_key=os.environ.get("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1" 
+    api_key=os.environ.get("OPENAI_API_KEY")
 )
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
@@ -64,9 +63,9 @@ def get_weather_forecast(lat: float, lon: float):
 def predict_rain(weather_data: dict):
     prompt = f"""
     You are an expert meteorologist. Analyze this raw weather data and tell me:
-    1. If it would be a sunny or rainy day?
-    2. If it's going to rain, when will it start and end?
-    3. How heavy will it be if it rains?
+    1. USE ONLY THE INFORMATION GIVEN TO YOU. DO NOT HALLUCINATE
+    2. Give a report on whether thr day would be a sunny or rainy day based on probabilities?
+    3. Give us the peak hours of the weather condition whether rainy or sunny. 
     4. Provide a brief summary of the weather conditions for the day.
     5. Give the information using west african time
     CRITICAL INSTRUCTION: Format your entire response strictly in Markdown. 
@@ -76,7 +75,7 @@ def predict_rain(weather_data: dict):
     """
     try:
         response = client.chat.completions.create(
-            model="openai/gpt-oss-20b", # Ensure this model ID exists in Groq's current docs
+            model="gpt-4o-mini", # Ensure this model ID exists in Groq's current docs
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
