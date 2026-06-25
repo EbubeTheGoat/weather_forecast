@@ -125,7 +125,7 @@ def job_fetch_and_send_forecast():
                     send_telegram_message(user.phone_number, message)
 
                 except Exception as e:
-                    logger.error(f"Skipping user {user.phone_number}: {e}")
+                    logger.exception("PIPELINE FAILED")
                     send_telegram_message(user.phone_number, "⚠️ Could not fetch your forecast. Try updating your location by replying 'change'.")
                     continue
 
