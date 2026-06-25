@@ -112,12 +112,16 @@ def job_fetch_and_send_forecast():
                 try:
                     # Log what's in the DB so you can verify
                     logger.info(f"Processing user {user.phone_number} — city={user.city}, state={user.state}, country={user.country}")
-                    
+
+                    logger.info("STEP 1: geocoding")
                     scraped = get_coordinates(user.city, user.state, user.country)
+                    logger.info("STEP 2: weather fetch")
                     weather_news = get_weather_forecast(scraped["latitude"], scraped["longitude"])
+                    logger.info("STEP 3: AI prediction")
                     prediction = predict_rain(weather_news)
 
                     message = f"Weather Forecast for {scraped['name']}, {scraped['country']}:\n\n{prediction}"
+                    logger.info("STEP 4: sending telegram")
                     send_telegram_message(user.phone_number, message)
 
                 except Exception as e:
