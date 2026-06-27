@@ -67,11 +67,12 @@ def predict_rain(weather_data: dict):
     1. Is rain > 50% likely?
     2. Peak precipitation hour?
     3. Max temperature?
-    4. Use ONLY the data provided.
-    5. Do NOT infer missing values.
-    6.If something is not present, say "unknown".
-    7.Do not add external knowledge.
-    8. Give the information using west african time
+    4. If it'll rain,be specific about the hour(s)
+    5. Use ONLY the data provided.
+    6. Do NOT infer missing values.
+    7.If something is not present, say "unknown".
+    8.Do not add external knowledge.
+    9. Give the information using west african time
     Keep it concise.
     Data: {weather_data}
     """
