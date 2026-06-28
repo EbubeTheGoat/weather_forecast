@@ -64,10 +64,10 @@ def get_weather_forecast(lat: float, lon: float):
 def predict_rain(weather_data: dict):
     prompt = f"""
     You are an expert meteorologist. Analyze this raw weather data:
-    1. Is rain > 50% likely?
+    1. Will it be a sunny day or rainy day? Give answer along with a percentage of certainty if available
     2. Peak precipitation hour?
     3. Max temperature?
-    4. If it'll rain,be specific about the hour(s)
+    4. If it'll rain,post the hours where the Rain(mm) > than 2
     5. Use ONLY the data provided.
     6. Do NOT infer missing values.
     7.If something is not present, say "unknown".
