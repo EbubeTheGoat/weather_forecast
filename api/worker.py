@@ -64,10 +64,10 @@ def get_weather_forecast(lat: float, lon: float):
 def predict_rain(weather_data: dict):
     prompt = f"""
     You are an expert meteorologist. Analyze this raw weather data:
-    1. If there are hours wuth Rain(mm) > than 6, say it is a rainy day or else it is a sunny day
+    1. If there are hours wuth Rain(mm) greater than or equal to 6mm, say it is a rainy day or else it is a sunny day
     2. Peak precipitation hour?
     3. Max temperature?
-    4. Post the hours wherr Rain(mm) is grewter or equal to than 6mm
+    4. Post the hours wherr Rain(mm) is greater or equal to than 6mm
     5. Use ONLY the data provided.
     6. Do NOT infer missing values.
     7.If something is not present, say "unknown".
