@@ -67,7 +67,7 @@ def predict_rain(weather_data: dict):
     1. If there are hours wuth Rain(mm) greater than or equal to 2mm, say it is a rainy day or else it is a sunny day
     2. Peak precipitation hour?
     3. Max temperature?
-    4. Post the hours wherr Rain(mm) is greater or equal to than 2mm
+    4. Post the hours where Rain(mm) is greater or equal to than 2mm
     5. Use ONLY the data provided.
     6. Do NOT infer missing values.
     7.If something is not present, say "unknown".
